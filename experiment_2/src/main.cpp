@@ -121,16 +121,27 @@ vector<MatrixXf> load_from_file (string file_name)
 };
 
 // leveraging my knowledge that there are 2 classes
-VectorXf classify_case_1 (MatrixXf to_classify, vector<VectorXf> mean_vector, float variance, VectorXf prior_probabilities)
+VectorXf classify_case_3 (MatrixXf to_classify, vector<VectorXf> mean_vector, vector<MatrixXf> covariance_matrix, VectorXf prior_probabilities)
 {
 	VectorXf classifications(to_classify.cols());
+
+	MatrixXf W_0 = -.5 * covariance_matrix[0].inverse();
+	MatrixXf w_0 = covariance_matrix[0].inverse() * mean_vector[0];
+	float w_0_0 = -.5 * mean_vector[0].transpose() * covariance_matrix[0].inverse() * mean_vector[0] 
+					- .5 * log(covariance_matrix[0].determinant()) + log(prior_probabilities[0]);
+
+
+	MatrixXf W_1 = -.5 * covariance_matrix[1].inverse();
+	MatrixXf w_1 = covariance_matrix[1].inverse() * mean_vector[1];
+	float w_1_0 = -.5 * mean_vector[1].transpose() * covariance_matrix[1].inverse() * mean_vector[1] 
+					- .5 * log(covariance_matrix[1].determinant()) + log(prior_probabilities[1]);
 
 	for ( int i = 0 ; i < to_classify.cols() ; i++ )
 	{
 		VectorXf x = to_classify.col(i);
 
-		float class_0_score = -1 * ( pow( ( x - mean_vector[0] ).norm(), 2 ) / ( 2 * variance ) ) + log(prior_probabilities[0]);
-		float class_1_score = -1 * ( pow( ( x - mean_vector[1] ).norm(), 2 ) / ( 2 * variance ) ) + log(prior_probabilities[1]);
+		float class_0_score = ( x.transpose() * W_0 * x + w_0.transpose() * x)(0, 0) + w_0_0;
+		float class_1_score = ( x.transpose() * W_1 * x + w_1.transpose() * x)(0, 0) + w_1_0;
 
 		if (class_0_score > class_1_score)
 			classifications[i] = 0;
@@ -141,20 +152,29 @@ VectorXf classify_case_1 (MatrixXf to_classify, vector<VectorXf> mean_vector, fl
 	return classifications;
 }
 
-void compute_decision_boundary (vector<VectorXf> mean_vector, float standard_deviation, VectorXf prior_probabilities)
+void compute_decision_boundary (vector<VectorXf> mean_vector, vector<MatrixXf> covariance_matrix, VectorXf prior_probabilities)
 {
-	MatrixXf W = (mean_vector[1] - mean_vector[0]);
-	VectorXf x0 = (.5) * (mean_vector[1] + mean_vector[0]) 
-					- ( standard_deviation / ( pow( (mean_vector[1] - mean_vector[0]).norm(),2 ) ) )
-					  * log(prior_probabilities[1] / prior_probabilities[0]) 
-					  * (mean_vector[1] - mean_vector[0]); 
+	MatrixXf W_0 = -.5 * covariance_matrix[0].inverse();
+	MatrixXf w_0 = covariance_matrix[0].inverse() * mean_vector[0];
+	float w_0_0 = -.5 * mean_vector[0].transpose() * covariance_matrix[0].inverse() * mean_vector[0] 
+					- .5 * log(covariance_matrix[0].determinant()) + log(prior_probabilities[0]);
+
+
+	MatrixXf W_1 = -.5 * covariance_matrix[1].inverse();
+	MatrixXf w_1 = covariance_matrix[1].inverse() * mean_vector[1];
+	float w_1_0 = -.5 * mean_vector[1].transpose() * covariance_matrix[1].inverse() * mean_vector[1] 
+					- .5 * log(covariance_matrix[1].determinant()) + log(prior_probabilities[1]);
 
 	ofstream o_file;
 
 	o_file.open("data/decision_boundary.csv");
 
-	o_file << W << endl;
-	o_file << x0 << endl;
+	o_file << W_0 << endl;
+	o_file << w_0 << endl;
+	o_file << w_0_0 << endl;
+	o_file << W_1 << endl;
+	o_file << w_1 << endl;
+	o_file << w_1_0 << endl;
 
 	o_file.close();
 }
@@ -238,7 +258,7 @@ int main (int argc, char** argv)
 
 	for (int i = 0; i < mean_vector.size(); i++)
 	{
-		VectorXf classifications = classify_case_1(test_data[i], mean_vector, (float) covariance_matrix[0](0, 0), prior_probabilities);
+		VectorXf classifications = classify_case_3(test_data[i], mean_vector, covariance_matrix, prior_probabilities);
 
 		double error = get_classification_error(i, classifications);
 		total_error += error;
@@ -249,7 +269,7 @@ int main (int argc, char** argv)
 	cout << "Total classification error: " << total_error << endl;
 	cout << "Bhattacharrya error upper bound: " << compute_bhattacharyya(mean_vector, covariance_matrix, prior_probabilities) << endl;
 
-	compute_decision_boundary(mean_vector, (float) covariance_matrix[0](0, 0), prior_probabilities);
+	compute_decision_boundary(mean_vector, covariance_matrix, prior_probabilities);
 
 	return 0;
 }
