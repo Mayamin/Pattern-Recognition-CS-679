@@ -14,6 +14,7 @@ VectorXf x_0;
 // using this because we are taking the average over a large set of floats and therefore have a high change of overflow
 // this way there is no overflow essentially as the value simply iterates toward the average instead of the average
 // being calculated after a very long summation
+// the numbers aren't really big enough in this case to overflow, however, this is just safer if not faster
 VectorXf estimate_mean(MatrixXf inp)
 {
 	VectorXf average = inp.col(0);
