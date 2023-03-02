@@ -262,10 +262,12 @@ int main (int argc, char** argv)
 		VectorXf classifications = classify_case_3(test_data[i], mean_vector, covariance_matrix, prior_probabilities);
 
 		double error = get_classification_error(i, classifications);
-		total_error += error;
+		total_error += error * test_data[i].cols();
 
 		cout << "Misclassification error for class " << i << ": " << error << endl;
 	}
+
+	total_error /= total_n;
 
 	cout << "Total classification error: " << total_error << endl;
 	cout << "Bhattacharrya error upper bound: " << compute_bhattacharyya(mean_vector, covariance_matrix, prior_probabilities) << endl;

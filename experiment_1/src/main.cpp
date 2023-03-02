@@ -141,6 +141,26 @@ VectorXf classify_case_1 (MatrixXf to_classify, vector<VectorXf> mean_vector, fl
 	return classifications;
 }
 
+VectorXf classify_euclid(MatrixXf to_classify, vector<VectorXf> mean_vector)
+{
+	VectorXf classifications(to_classify.cols());
+
+	for ( int i = 0 ; i < to_classify.cols() ; i++ )
+	{
+		VectorXf x = to_classify.col(i);
+
+		float class_0_score = ( x - mean_vector[0] ).norm();
+		float class_1_score = ( x - mean_vector[1] ).norm();
+
+		if (class_0_score > class_1_score)
+			classifications[i] = 0;
+		else
+			classifications[i] = 1;
+	}
+
+	return classifications;
+}
+
 void compute_decision_boundary (vector<VectorXf> mean_vector, float standard_deviation, VectorXf prior_probabilities)
 {
 	MatrixXf W = (mean_vector[1] - mean_vector[0]);
@@ -238,13 +258,15 @@ int main (int argc, char** argv)
 
 	for (int i = 0; i < mean_vector.size(); i++)
 	{
-		VectorXf classifications = classify_case_1(test_data[i], mean_vector, (float) covariance_matrix[0](0, 0), prior_probabilities);
+		VectorXf classifications = classify_case_1(test_data[i], mean_vector, covariance_matrix[0](0, 0), prior_probabilities);
 
 		double error = get_classification_error(i, classifications);
-		total_error += error;
+		total_error += error * test_data[i].cols();
 
 		cout << "Misclassification error for class " << i << ": " << error << endl;
 	}
+
+	total_error /= total_n;
 
 	cout << "Total classification error: " << total_error << endl;
 	cout << "Bhattacharrya error upper bound: " << compute_bhattacharyya(mean_vector, covariance_matrix, prior_probabilities) << endl;

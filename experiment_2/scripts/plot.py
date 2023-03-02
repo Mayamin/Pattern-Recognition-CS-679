@@ -50,8 +50,8 @@ def find_guess(a: float, b: float, c: float, chosen_range: list):
 def newtons_method (a: float, b: float, c: float, guess: float):
 	xn = guess
 
-	# shouldn't need to iterate more than 10 times bc this method is awesome ( probably can do less )
-	for i in range(10):
+	# shouldn't need to iterate more than 5 times bc this method is awesome ( probably can do less )
+	for i in range(5):
 		f_x_n = (a * (xn * xn)) + b * xn + c
 		f_prime_x_n = 2 * a * xn + b
 
@@ -152,3 +152,5 @@ if __name__ == '__main__':
 	ax1.plot(x1[2:-1], x3, c='black')
 
 	plt.show()
+
+	fig1.savefig('data/plot.pdf')

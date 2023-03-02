@@ -48,4 +48,9 @@ if __name__ == '__main__':
 
 	ax1.plot(x1, x2, c='black')
 
+	plt.xlim(-10, 15)
+	plt.ylim(-10, 15)
+
 	plt.show()
+
+	fig1.savefig('data/plot.pdf')
