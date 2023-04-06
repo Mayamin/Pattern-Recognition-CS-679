@@ -6,10 +6,6 @@ import csv
 # only run this file through the make file.
 # run 'make plot', or 'make run' 
 
-line_start = -3
-line_end = 8
-increments = .1
-
 data = [ [[], []], [[], []]] 
 
 def decision_boundary_class_1 (W: list, x0: list, x1: list):

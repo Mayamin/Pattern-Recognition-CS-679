@@ -6,6 +6,9 @@
 #include <bits/stdc++.h>
 #include <Eigen/Dense>
 
+#define OUTPUT_PATH "results/"
+#define EPSILON .1
+
 using namespace std;
 using namespace Eigen;
 
@@ -41,6 +44,21 @@ MatrixXf estimate_cov_matrix(MatrixXf points, VectorXf mean)
 	}
 
 	return Q / (points.cols() - 1);
+}
+
+bool isApprox(MatrixXf inp1, MatrixXf inp2)
+{
+	if ( ! ( inp1.cols() == inp2.cols() && inp1.rows() == inp2.rows() ) )
+		return false;
+
+	MatrixXf full_comp = inp1 - inp2;
+
+	for (int i = 0; i < full_comp.rows(); i++)
+		for (int j = 0; j < full_comp.cols(); j++)
+			if (abs(full_comp(i, j)) >= EPSILON)
+				return false;
+
+	return true;
 }
 
 MatrixXf matricize (vector<Vector2f> inp)
@@ -163,6 +181,29 @@ VectorXf classify_euclid(MatrixXf to_classify, vector<VectorXf> mean_vector)
 	return classifications;
 }
 
+VectorXf classify_case_2 (MatrixXf to_classify, vector<VectorXf> mean_vector, MatrixXf covariance_matrix, VectorXf prior_probabilities)
+{
+	VectorXf classifications(to_classify.cols());
+
+	float prior_0 = log(prior_probabilities[0]);
+	float prior_1 = log(prior_probabilities[1]);
+
+	for ( int i = 0 ; i < to_classify.cols() ; i++ )
+	{
+		VectorXf x = to_classify.col(i);
+
+		float class_0_score = (-.5) * ( x - mean_vector[0] ).transpose() * covariance_matrix.inverse() * (x - mean_vector[0]) + prior_0;
+		float class_1_score = (-.5) * ( x - mean_vector[1] ).transpose() * covariance_matrix.inverse() * (x - mean_vector[1]) + prior_1;
+
+		if (class_0_score > class_1_score)
+			classifications[i] = 0;
+		else
+			classifications[i] = 1;
+	}
+
+	return classifications;
+}
+
 // leveraging my knowledge that there are 2 classes
 VectorXf classify_case_3 (MatrixXf to_classify, vector<VectorXf> mean_vector, vector<MatrixXf> covariance_matrix, VectorXf prior_probabilities)
 {
@@ -230,7 +271,7 @@ MatrixXf random_select_n(MatrixXf full_data, int n)
 	return matricize(tmp);
 }
 
-void compute_decision_boundary_1 (vector<VectorXf> mean_vector, float standard_deviation, VectorXf prior_probabilities)
+void compute_decision_boundary_1 (vector<VectorXf> mean_vector, float standard_deviation, VectorXf prior_probabilities, string file_name)
 {
 	MatrixXf W = (mean_vector[1] - mean_vector[0]);
 	VectorXf x0 = (.5) * (mean_vector[1] + mean_vector[0]) 
@@ -239,16 +280,44 @@ void compute_decision_boundary_1 (vector<VectorXf> mean_vector, float standard_d
 					  * (mean_vector[1] - mean_vector[0]); 
 
 	ofstream o_file;
+	ostringstream os;
 
-	o_file.open("data/decision_boundary.csv");
+	os << OUTPUT_PATH << file_name;
 
+	o_file.open(os.str());
+
+	o_file << 1 << endl;
 	o_file << W << endl;
 	o_file << x0 << endl;
 
 	o_file.close();
 }
 
-void compute_decision_boundary_3 (vector<VectorXf> mean_vector, vector<MatrixXf> covariance_matrix, VectorXf prior_probabilities)
+void compute_decision_boundary_2 (vector<VectorXf> mean_vector, MatrixXf covariance_matrix, VectorXf prior_probabilities, string file_name)
+{
+	VectorXf w_0 = covariance_matrix.inverse() * mean_vector[0];
+	float w_0_0 = (-.5) * (mean_vector[0].transpose() * covariance_matrix.inverse() * mean_vector[0] + log(prior_probabilities[0]));
+
+	VectorXf w_1 = covariance_matrix.inverse() * mean_vector[1];
+	float w_1_0 = (-.5) * (mean_vector[1].transpose() * covariance_matrix.inverse() * mean_vector[1] + log(prior_probabilities[1]));
+
+	ofstream o_file;
+	ostringstream os;
+
+	os << OUTPUT_PATH << file_name;
+
+	o_file.open(os.str());
+
+	o_file << 2 << endl;
+	o_file << w_0 << endl;
+	o_file << w_0_0 << endl;
+	o_file << w_1 << endl;
+	o_file << w_1_0 << endl;
+
+	o_file.close();
+}
+
+void compute_decision_boundary_3 (vector<VectorXf> mean_vector, vector<MatrixXf> covariance_matrix, VectorXf prior_probabilities, string file_name)
 {
 	MatrixXf W_0 = -.5 * covariance_matrix[0].inverse();
 	MatrixXf w_0 = covariance_matrix[0].inverse() * mean_vector[0];
@@ -262,9 +331,13 @@ void compute_decision_boundary_3 (vector<VectorXf> mean_vector, vector<MatrixXf>
 					- .5 * log(covariance_matrix[1].determinant()) + log(prior_probabilities[1]);
 
 	ofstream o_file;
+	ostringstream os;
 
-	o_file.open("data/decision_boundary.csv");
+	os << OUTPUT_PATH << file_name;
 
+	o_file.open(os.str());
+
+	o_file << 3 << endl;
 	o_file << W_0 << endl;
 	o_file << w_0 << endl;
 	o_file << w_0_0 << endl;
@@ -316,7 +389,7 @@ int get_correct_case(vector<MatrixXf> covariance_matrix)
 
 	for (int i = 0; i < covariance_matrix.size(); i++)
 		for (int j = i + 1; j < covariance_matrix.size(); j++)
-			they_are_equal = they_are_equal && (covariance_matrix[i] - covariance_matrix[j]).isApprox(z_matrix);
+			they_are_equal = they_are_equal && isApprox(covariance_matrix[i], covariance_matrix[j]);
 
 	if (they_are_equal)
 	{
@@ -325,7 +398,7 @@ int get_correct_case(vector<MatrixXf> covariance_matrix)
 
 		MatrixXf comp_matrix = covariance_matrix[0] / covariance_matrix[0](0, 0);
 
-		if (comp_matrix.isApprox(i_matrix))
+		if (isApprox(comp_matrix, i_matrix))
 			return 1;
 
 		// otherwise it must be case 2
@@ -344,6 +417,9 @@ int main (int argc, char** argv)
 		return -1;
 
 	cout << "Loading data from: \"" << argv[1] << "\"..." << endl;
+
+	int experiment_num = (!strcmp(argv[1], "data/dataset_A.csv"))? 1: 2;
+
 
 	vector<vector<MatrixXf>> training_data;
 	vector<MatrixXf> test_data = load_from_file(argv[1]);
@@ -418,14 +494,16 @@ int main (int argc, char** argv)
 		double total_error = 0;
 
 		int case_num = get_correct_case(covariance_matrix);
-		cout << "Using case " << case_num << " for classification!" << endl;
+		cout << "Using Case " << case_num << " for classification!" << endl;
 
 		for (int i = 0; i < mean_vector.size(); i++)
 		{
 			VectorXf classifications;
-			
+
 			if (case_num == 3)
 				classifications = classify_case_3(test_data[i], mean_vector, covariance_matrix, prior_probabilities);
+			else if (case_num == 2)
+				classifications = classify_case_2(test_data[i], mean_vector, covariance_matrix[0], prior_probabilities);
 			else
 				classifications = classify_case_1(test_data[i], mean_vector, covariance_matrix[0](0, 0), prior_probabilities);
 
@@ -440,10 +518,16 @@ int main (int argc, char** argv)
 		cout << "Total classification error: " << total_error << endl;
 		cout << "Bhattacharrya error upper bound: " << compute_bhattacharyya(mean_vector, covariance_matrix, prior_probabilities) << endl;
 
+
+		ostringstream os;
+		os << "experiment_" << experiment_num << "_" << j << "_results.csv";
+
 		if (case_num == 3)
-			compute_decision_boundary_3(mean_vector, covariance_matrix, prior_probabilities);
+			compute_decision_boundary_3(mean_vector, covariance_matrix, prior_probabilities, os.str());
+		else if (case_num == 2)
+			compute_decision_boundary_2(mean_vector, covariance_matrix[0], prior_probabilities, os.str());
 		else	
-			compute_decision_boundary_1(mean_vector, (float) covariance_matrix[0](0, 0), prior_probabilities);
+			compute_decision_boundary_1(mean_vector, (float) covariance_matrix[0](0, 0), prior_probabilities, os.str());
 
 		mean_vector.clear();
 		covariance_matrix.clear();
