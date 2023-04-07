@@ -471,7 +471,7 @@ Image.fromarray(yCC_test2_rgb).save('/home/mraha/PA_2/P2_Data/Data_Prog2/test2_y
 plt.plot(thresholds,FPR_list, 'r',label = "chromatic_FP")
 plt.plot(thresholds,FNR_list,'b',label = "chromatic_FN" )
 plt.plot(thresholds,yCC_FPR_list, 'g',label = "yCC_FP")
-plt.plot(thresholds,yCC_FNR_list,'o',label = "yCC_FN" )
+plt.plot(thresholds,yCC_FNR_list,'y',label = "yCC_FN" )
 
 
 plt.title('Train ROC Curve')
@@ -484,7 +484,7 @@ plt.show()
 plt.plot(thresholds,test1_FPR_list, 'r',label = "chromatic_test1_FP")
 plt.plot(thresholds,test1_FNR_list,'b',label = "chromatic_test1_FN" )
 plt.plot(thresholds,yCC_test1_FPR_list, 'g',label = "yCC_test1_FP")
-plt.plot(thresholds,yCC_test1_FNR_list,'o',label = "yCC_test1_FN" )
+plt.plot(thresholds,yCC_test1_FNR_list,'y',label = "yCC_test1_FN" )
 
 plt.title('Test1 ROC Curve')
 plt.xlabel('Threshold')
@@ -496,7 +496,7 @@ plt.show()
 plt.plot(thresholds, test2_FPR_list,'r',label = "chromatic_test2_FP")
 plt.plot(thresholds,test2_FNR_list,'b',label = "chromatic_test2_FN")
 plt.plot(thresholds, yCC_test2_FPR_list,'g',label = "yCC_test2_FP")
-plt.plot(thresholds,yCC_test2_FNR_list,'o',label = "yCC_test2_FN")
+plt.plot(thresholds,yCC_test2_FNR_list,'y',label = "yCC_test2_FN")
 
 plt.title('Test2 ROC Curve')
 plt.xlabel('Threshold')
@@ -504,193 +504,4 @@ plt.ylabel('Error Rate')
 plt.legend(loc="lower right")
 plt.savefig('Test2_ROC_curve.png')
 plt.show()
-
-
-
-
-
-
-# best_threshold_index = 0
-# min = FPR_list[0]-FNR_list[0]
-
-# for i in range (1,20,1):
-#   if abs(FPR_list[i]-FNR_list[i]) < min:
-#      best_threshold_index = i
-  
-
-# best_threshold = thresholds[best_threshold_index]
-# print("Best threshold found ",best_threshold )
-
-#read test image
-
-
-# y_true = np.array([])
-# y_scores = np.array([])
-
-#classifying test image 
-# for i in range(width):
-#   for j in range(height):
-     
-#     comparison_1 = train_ref_rgb[i][j] == red
-#     comparison_2 = train_ref_rgb[i][j] == white
-       
-#     x_test = np.array([test1_rgb[i,j][0], test1_rgb[i,j][1]])
-
-#     #experimental 255 if white 0 if black
-#     # y_true = np.append(y_true,test1_rgb[i,j][0])
-
-#     #assiging groud_ truth values to a 2D array
-#     if (comparison_1.all() ) or ( comparison_2.all()):
-#       ground_truth_t1[i,j] = 1
-#     #    y_true = np.append(y_true,1)
-#     # else:
-#     #   y_true = np.append(y_true,0)
-
-#     #classification
-#     if gaussian_pdf(x_test, mew,covariance_matrix) > best_threshold:
-      
-#       test1_label = 1
-#     #   y_scores = np.append(y_scores,1)
-    
-#     # else:
-#     #   y_scores = np.append(y_scores,0)
-
-#         #TP
-#     if ground_truth_t1[i,j] == 1 and test1_label == 1:
-#           # my_array[i][j][t] = 1
-#       test1_TP_count = test1_TP_count + 1
-#         #TN   
-#     elif ground_truth_t1[i,j] == 0 and test1_label == 0:
-#           # my_array[i][j][t] = 2
-#       test1_TN_count = test1_TN_count + 1
-
-#         #FP   
-#     elif ground_truth_t1[i,j] == 0 and test1_label == 1:
-       
-#       test1_FP_count = test1_FP_count + 1
-
-#         #FN   
-#     elif ground_truth_t1[i,j] == 1 and test1_label == 0:
-         
-#       test1_FN_count = test1_FN_count + 1
-    
-#     #only keeping the the estimated face pixels in test image and making everything else black 
-#     if ground_truth_t1 != test1_label:
-#        test1_rgb[i,j] = np.array([0,0,0]) 
-
-#     # test1_FP_list = np.append(test1_FP_list,test1_FP_count)
-#     # test1_FN_list = np.append(test1_FN_list,test1_FN_count)
-#     # test1_TP_list = np.append(test1_TP_list,test1_TP_count)
-#     # test1_TN_list = np.append(test1_TN_list,test1_TN_count)
-
-
-
-
-# test_FPR = test1_FP_count / (test1_FP_count + test1_TN_count)
-# test_FNR = test1_FN_count / (test1_FN_count + test1_TP_count)
-
-# # sorted_indices = np.argsort(y_scores)[::-1]
-# # y_true_sorted = y_true[sorted_indices]
-# # y_scores_sorted = y_scores[sorted_indices]
-
-# # # Initialize the true positive rate and false positive rate arrays
-# # tpr = [0]
-# # fpr = [0]
-
-# # # Initialize the number of true positives and false positives to 0
-# # tp = 0
-# # fp = 0
-
-# # # Iterate through each predicted score and update tp and fp accordingly
-# # for i in range(len(y_scores_sorted)):
-# #     if y_true_sorted[i] == 1:
-# #         tp += 1
-# #     else:
-# #         fp += 1
-# #     tpr.append(tp / sum(y_true))
-# #     fpr.append(fp / sum(1 - y_true))
-
-# # Plot the ROC curve
-# plt.plot(fpr, thresholds, ".",marker=10,alpha=4)
-# plt.plot(tpr, thresholds)
-# plt.title('ROC Curve')
-# plt.xlabel('False Positive Rate')
-# plt.ylabel('True Positive Rate')
-# plt.legend
-# plt.show()
-
-
-
-# start = time.time()
-
-# # print(23*2.3)
-
-# end = time.time()
-# print("time elapsed ",end - start)
-
-
-
-
-
-
-# # print("FPR_list ",FPR_list)
-# # print("FNR_list ",FNR_list)
-
-# # plt.scatter(FPR_list,FNR_list)
-# # plt.title('Scatter Plot of FP vs FN')
-# # plt.xlabel('FP')
-# # plt.ylabel('FN')
-# # plt.savefig('ROC_curve.png')
-# # plt.show()
-
-
-
-
-
-
-
-
-#         #print("mu ", mew)
-
-# # optimum_t = np.argmax(equal_error_t) 
-# # print("optimum t found to be ",optimum_t)
-# # equal_error_t =    np.empty(equal_error_t)     
-# # labels_1 = np.zeros((width,height))
-# # print("classification started")
-# # #classification with optimum threshold value
-# # for i in range(width):
-# #     for j in range(height):
-       
-# #       x = np.array([chromatic[i,j,0],chromatic[i,j,1]])
-# #       mew = np.array(train_mean)
-       
-# #       #assigning label value as 1 face  
-# #       if gaussian_pdf(x,mew,covariance_matrix) > optimum_t:
-# #        labels_1[i,j] = 1
-      
-# #       #for each pixel checking assigned label with ground truth
-# #       if (ground_truth_1[i,j] == 0 ) and (labels_1[i,j] == 1):
-# #        FP = FP+1
-# #        FP_plot = np.append(FP_plot,FP)
-
-# #       elif(ground_truth_1[i,j] == 1 ) and (labels_1[i,j] == 0):
-# #        FN = FN + 1
-# #        FN_plot = np.append(FN_plot,FN)
-
-# # print("Classification done!")
-# # plt.scatter(FP_plot, FN_plot, c= "blue")
-# # plt.show()
- 
-# # plt.scatter(FP_plot, FN_plot,c = "blue")
-# # plt.ylabel('True Positive Rate')
-# # plt.xlabel('False Positive Rate')
-# # plt.savefig('ROC_curve.png')
-# # plt.show()
-
-# # start = time.time()
-
-# # print(23*2.3)
-
-# # end = time.time()
-# # print("time elapsed ",end - start)
 
