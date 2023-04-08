@@ -409,6 +409,16 @@ int get_correct_case(vector<MatrixXf> covariance_matrix)
 	return 3;
 }
 
+double calc_rmse(VectorXf estimate, VectorXf gt)
+{
+	return (estimate - gt).norm() / sqrt((estimate.size()));
+}
+
+double calc_rmse(MatrixXf estimate, MatrixXf gt)
+{
+	return (estimate - gt).norm() / sqrt((estimate.cols() * estimate.rows()));
+}
+
 int main (int argc, char** argv)
 {
 	srand(time(0));
@@ -420,6 +430,41 @@ int main (int argc, char** argv)
 
 	int experiment_num = (!strcmp(argv[1], "data/dataset_A.csv"))? 1: 2;
 
+	VectorXf gt_mean_1(2);
+	VectorXf gt_mean_2(2);
+	MatrixXf gt_cov_1(2, 2);
+	MatrixXf gt_cov_2(2, 2);
+
+	if (experiment_num == 1)
+	{
+		gt_mean_1[0] = 1;
+		gt_mean_1[1] = 1;
+		gt_mean_2[0] = 4;
+		gt_mean_2[1] = 4;
+		gt_cov_1(0, 0) = 1;
+		gt_cov_1(0, 1) = 0;
+		gt_cov_1(1, 0) = 0;
+		gt_cov_1(1, 1) = 1;
+		gt_cov_2(0, 0) = 1;
+		gt_cov_2(0, 1) = 0;
+		gt_cov_2(1, 0) = 0;
+		gt_cov_2(1, 1) = 1;
+	}
+	else
+	{
+		gt_mean_1[0] = 1;
+		gt_mean_1[1] = 1;
+		gt_mean_2[0] = 4;
+		gt_mean_2[1] = 4;
+		gt_cov_1(0, 0) = 1;
+		gt_cov_1(0, 1) = 0;
+		gt_cov_1(1, 0) = 0;
+		gt_cov_1(1, 1) = 1;
+		gt_cov_2(0, 0) = 4;
+		gt_cov_2(0, 1) = 0;
+		gt_cov_2(1, 0) = 0;
+		gt_cov_2(1, 1) = 8;
+	}
 
 	vector<vector<MatrixXf>> training_data;
 	vector<MatrixXf> test_data = load_from_file(argv[1]);
@@ -468,26 +513,62 @@ int main (int argc, char** argv)
 	for (int j = 0; j < training_data.size(); j++)
 	{
 
-		cout << "=============================================================================================" << endl;
-		cout << "Performing experiment " << (char)( 'a' + j ) << " with " << training_data[j][0].cols() << " points from class 1 and " << training_data[j][1].cols() << " points from class 2..." << endl;
-		cout << "=============================================================================================" << endl;
-
-		for (int i = 0; i < training_data[j].size(); i++)
+		if (j == 0)
 		{
-			VectorXf mean_i = estimate_mean(training_data[j][i]);
-			MatrixXf covar_matrix_i = estimate_cov_matrix(training_data[j][i], mean_i);
-			float probability_i = ( (float) training_data[j][i].cols() ) / (total_size[j]);
-
-			mean_vector.push_back(mean_i);
-			covariance_matrix.push_back(covar_matrix_i);
-			prior_probabilities[i] = probability_i;
-
-			cout << "Class " << i << " Mean: " << endl;
-			cout << mean_i << endl;
-			cout << "Class " << i << " Covariance Matrix: " << endl;
-			cout << covar_matrix_i << endl;
+			cout << "=============================================================================================" << endl;
+			cout << "Performing experiment " << (char)( 'a' + j ) << " with the ground truth values for class 1 and 2..." << endl;
+			cout << "=============================================================================================" << endl;
 		}
+		else
+		{
+			cout << "=============================================================================================" << endl;
+			cout << "Performing experiment " << (char)( 'a' + j ) << " with " << training_data[j][0].cols() << " points from class 1 and " << training_data[j][1].cols() << " points from class 2..." << endl;
+			cout << "=============================================================================================" << endl;
+		}
+		
 
+		if (j == 0)
+		{
+			mean_vector.push_back(gt_mean_1);
+			mean_vector.push_back(gt_mean_2);
+			covariance_matrix.push_back(gt_cov_1);
+			covariance_matrix.push_back(gt_cov_2);
+			prior_probabilities[0] = .3;
+			prior_probabilities[1] = .7;
+			
+			cout << "Class " << 0 << " Mean: " << endl;
+			cout << mean_vector[0] << endl;
+			cout << "Class " << 0 << " Covariance Matrix: " << endl;
+			cout << covariance_matrix[0] << endl;
+			cout << "Class " << 1 << " Mean: " << endl;
+			cout << mean_vector[1] << endl;
+			cout << "Class " << 1 << " Covariance Matrix: " << endl;
+			cout << covariance_matrix[1] << endl;
+		}
+		else
+		{
+			for (int i = 0; i < training_data[j].size(); i++)
+			{
+				VectorXf mean_i = estimate_mean(training_data[j][i]);
+				MatrixXf covar_matrix_i = estimate_cov_matrix(training_data[j][i], mean_i);
+				float probability_i = ( (float) training_data[j][i].cols() ) / (total_size[j]);
+
+				mean_vector.push_back(mean_i);
+				covariance_matrix.push_back(covar_matrix_i);
+				prior_probabilities[i] = probability_i;
+
+				cout << "Class " << i << " Mean: " << endl;
+				cout << mean_i << endl;
+				cout << "Class " << i << " Covariance Matrix: " << endl;
+				cout << covar_matrix_i << endl;
+			}
+		}
+		
+		cout << "Error in estimating mean for class 1: " << calc_rmse(mean_vector[0], gt_mean_1) << endl; 
+		cout << "Error in estimating mean for class 1: " << calc_rmse(mean_vector[1], gt_mean_2) << endl;
+		cout << "Error in estimating covariance matrix for class 1: " << calc_rmse(covariance_matrix[0], gt_cov_1) << endl;
+		cout << "Error in estimating covariance matrix for class 1: " << calc_rmse(covariance_matrix[1], gt_cov_2) << endl;
+		
 		cout << "Class prior probability vector: " << endl;
 		cout << prior_probabilities << endl;
 	

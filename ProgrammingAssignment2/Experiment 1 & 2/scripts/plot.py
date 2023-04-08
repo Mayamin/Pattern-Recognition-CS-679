@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
 	fig1, ax1 = plt.subplots()
 
-	# plot the data and all 5 classifiers on 1 line
+	# plot the data and all 5 classifiers on 1 graph
 	util.plot_classifiers_and_data(ax1, data_A, c_data_all[0], labels[0], guess[0])
 
 	fig2, ax2 = plt.subplots()
