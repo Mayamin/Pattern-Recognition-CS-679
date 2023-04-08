@@ -8,22 +8,34 @@ import random
 import matplotlib.pyplot as plt
 from PIL import Image
 from sklearn.metrics import roc_curve
-
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 #open cv reads in the order BGR
 
 # Calculate the Gaussian probability density function for a given x, mean (mu) and variance (var)
 def gaussian_pdf(x, mu, lhs, cov_inv):
+  #  print(lhs)
+  #  print(x)
+  #  print(mu)
+  #  print(cov_inv)
 
-   #print(str(np.sqrt(((2*math.pi)**2) *  np.linalg.det(cov))))
-
-   # print("="*30)
-   # print(str(((np.transpose(x-mu) * np.linalg.inv(cov)))))
-   # print("="*30)
-
-   pdf = lhs * np.exp((-0.5) *  np.transpose(x-mu).dot( cov_inv.dot((x-mu)))) 
-     
+   pdf = lhs * np.exp((-0.5) *  np.dot(np.transpose(x-mu), ( np.dot(cov_inv, ((x-mu)))))) 
+   
    return pdf
+
+def calc_mean( x: list):
+  sum = 0
+  for i in x:
+    sum += x
+  return sum / len(x)
+
+def calc_covariance(x, mu):
+  sum = 0
+
+  for i in len(x[0]):
+    nx = np.array(x[0][i], x[1][i])
+    sum += np.dot((nx - mu), ( np.transpose(nx - mu)))
+
+  return sum / len(x[0])
 
 #read training image and convert from bgr to rgb
 path = r'/home/mraha/PA_2/P2_Data/Data_Prog2/Training_1.ppm'
@@ -74,7 +86,11 @@ ground_truth_t1 = np.zeros((test1_ref_rgb.shape[0],test1_ref_rgb.shape[1]))
 path_3 = r'/home/mraha/PA_2/P2_Data/Data_Prog2/Training_6.ppm'
 test2_bgr = cv2.imread(path_3) 
 test2_rgb = cv2.cvtColor(test2_bgr, cv2.COLOR_BGR2RGB)
-yCC_test2_rgb = cv2.cvtColor(test2_bgr, cv2.COLOR_BGR2RGB)
+
+###########
+# yCC_test2_rgb = cv2.cvtColor(test2_bgr, cv2.COLOR_BGR2RGB)
+####
+
 test2_chromatic = np.zeros((test2_rgb.shape[0],test2_rgb.shape[1],test2_rgb.shape[2]))
 test2_yCC = np.zeros((test2_rgb.shape[0],test2_rgb.shape[1],test2_rgb.shape[2]))
 
@@ -113,7 +129,7 @@ for i in range(width):
     #Cb
     yCC_clr_space[i,j,1] = (-0.169 * train_rgb[i,j][0]) - (0.332 * train_rgb[i,j][1]) + (0.500 * train_rgb[i,j][2])
     #Cr
-    yCC_clr_space[i,j,2] = ( 0.500 * train_rgb[i,j][0]) - (- 0.419 * train_rgb[i,j][1]) - (0.081 * train_rgb[i,j][2])
+    yCC_clr_space[i,j,2] = ( 0.500 * train_rgb[i,j][0]) - (0.419 * train_rgb[i,j][1]) - (0.081 * train_rgb[i,j][2])
     
     #test1 image convert to chromatic space
     test1_denominator = sum(test1_rgb[i,j])
@@ -125,7 +141,7 @@ for i in range(width):
 
     #test1 image convert to yCC space
     test1_yCC[i,j,1] = (-0.169 * test1_rgb[i,j][0]) - (0.332 * test1_rgb[i,j][1]) + (0.500 * test1_rgb[i,j][2])
-    test1_yCC[i,j,2] = ( 0.500 * test1_rgb[i,j][0]) - (- 0.419 * test1_rgb[i,j][1]) - (0.081 * test1_rgb[i,j][2])
+    test1_yCC[i,j,2] = ( 0.500 * test1_rgb[i,j][0]) - ( 0.419 * test1_rgb[i,j][1]) - (0.081 * test1_rgb[i,j][2])
 
     #test2 image convert to chromatic space
     test2_denominator = sum(test2_rgb[i,j])
@@ -137,7 +153,7 @@ for i in range(width):
 
     #test2 image convert to yCC space
     test2_yCC[i,j,1] = (-0.169 * test2_rgb[i,j][0]) - (0.332 * test2_rgb[i,j][1]) + (0.500 * test2_rgb[i,j][2])
-    test2_yCC[i,j,2] = ( 0.500 * test2_rgb[i,j][0]) - (- 0.419 * test2_rgb[i,j][1]) - (0.081 * test2_rgb[i,j][2])
+    test2_yCC[i,j,2] = ( 0.500 * test2_rgb[i,j][0]) - ( 0.419 * test2_rgb[i,j][1]) - (0.081 * test2_rgb[i,j][2])
     
     #for train image
     #keeping the face pixel values in red and green channel and marking these locations as 1 in groud truth array
@@ -173,7 +189,7 @@ for i in range(width):
       ground_truth_t2 [i,j] = 1
    
 # print("lenght of red = length of green channel  = N", red_channel.size, green_channel.size)
-print("Conversion to chromatic and yCC space done! ")
+# print("Conversion to chromatic and yCC space done! ")
 N = red_channel.size
 
 #Compute Mean
@@ -188,18 +204,27 @@ print("Mean for chromatic and yCC color space calculated! ")
 
 # Compute Covariance 
 covariance_matrix = np.array(np.cov(red_channel, green_channel))
+
 yCC_covariance_matrix = np.array(np.cov(cB_channel, cR_channel))
 print("Covariance matrix for chromatic and yCC color space calculated! ")
 
-#creating threshold
+#creating threshold chromatic
 constant_factor = 1 / ((2*math.pi) * math.sqrt(np.linalg.det(covariance_matrix)))
 step_size = constant_factor/20 
 thresholds = []
 thresholds = [0 for i in range(20)] 
 number_of_thresholds = 20
 
+#creating threshold yCC
+yCC_constant_factor = 1 / ((2*math.pi) * math.sqrt(np.linalg.det(yCC_covariance_matrix)))
+yCC_step_size = yCC_constant_factor/20 
+yCC_thresholds = []
+yCC_thresholds = [0 for i in range(20)] 
+yCC_number_of_thresholds = 20
+
 for i in range (1,20,1):
     thresholds[i] = (thresholds[i-1] + step_size)
+    yCC_thresholds[i] = (yCC_thresholds[i-1] + yCC_step_size)
 print("20 thresholds created! ")
 
 #finding optimum threshold at equal error rate
@@ -278,7 +303,7 @@ for t in range (20):
         else:
           label = 0 
         
-        if gaussian_pdf(yCC_x, yCC_mew, yCC_lhs, yCC_cov_inv) > thresholds[t]:
+        if gaussian_pdf(yCC_x, yCC_mew, yCC_lhs, yCC_cov_inv) > yCC_thresholds[t]:
           yCC_label = 1
         else:
           yCC_label = 0 
@@ -313,20 +338,20 @@ for t in range (20):
         #######test1 image
         x_t1 = np.array([test1_chromatic[i,j,0],test1_chromatic[i,j,1]])
         # print("x_t1",x_t1)
-        yCC_x_t1 = np.array([test1_yCC[i,j,0],test1_yCC[i,j,1]])
+        yCC_x_t1 = np.array([test1_yCC[i,j,1],test1_yCC[i,j,2]])
         # print("yCC_x_t1 ",yCC_x_t1)
         #assigning labels for chromatic space
         if gaussian_pdf(x_t1,mew, lhs, cov_inv)>thresholds[t]:
           test1_label = 1
         else:
-          test1_rgb[i,j] = [255,255,255]
+          # test1_rgb[i,j] = [255,255,255]
           test1_label = 0
         
-        #classification for chromatic space
-        if gaussian_pdf(yCC_x_t1,yCC_mew, yCC_lhs, yCC_cov_inv)>thresholds[t]:
+        #classification for yCC space
+        if gaussian_pdf(yCC_x_t1,yCC_mew, yCC_lhs, yCC_cov_inv)>yCC_thresholds[t]:
           yCC_test1_label = 1
         else:
-          yCC_test1_rgb[i,j] = [255,255,255]
+          # yCC_test1_rgb[i,j] = [255,255,255]
           yCC_test1_label = 0
 
         #compute FN FP TN TP for first test image in chromatic space
@@ -352,20 +377,20 @@ for t in range (20):
 
         #######test2 image
         x_t2 = np.array([test2_chromatic[i,j,0],test2_chromatic[i,j,1]])
-        yCC_x_t2 = np.array([test2_yCC[i,j,0],test2_yCC[i,j,1]])
+        yCC_x_t2 = np.array([test2_yCC[i,j,1],test2_yCC[i,j,2]])
 
         #classification of second test image in chromatic space
         if gaussian_pdf(x_t2,mew, lhs, cov_inv)>thresholds[t]:
           test2_label = 1
         else:
-          test2_rgb[i,j] = [255,255,255]
+          # test2_rgb[i,j] = [255,255,255]
           test2_label = 0
         
         #classification for yCC space
-        if gaussian_pdf(yCC_x_t2,yCC_mew, yCC_lhs, yCC_cov_inv)>thresholds[t]:
+        if gaussian_pdf(yCC_x_t2,yCC_mew, yCC_lhs, yCC_cov_inv)>yCC_thresholds[t]:
           yCC_test2_label = 1
         else:
-          yCC_test2_rgb[i,j] = [255,255,255]
+          # yCC_test2_rgb[i,j] = [255,255,255]
           yCC_test2_label = 0
 
         #compute FN FP TN TP for second test image in chromatic space
@@ -462,46 +487,167 @@ for t in range (20):
   yCC_test1_FP_count = yCC_test1_FN_count = yCC_test1_TP_count = yCC_test1_TN_count = 0
   yCC_test2_FP_count = yCC_test2_FN_count = yCC_test2_TP_count = yCC_test2_TN_count = 0
 
+#
+min_t1 = abs(test1_FPR_list[0]-test1_FNR_list[0])
+min_t1_index = 0
+
+min_t2 = abs(test2_FPR_list[0]-test2_FNR_list[0])
+min_t2_index = 0
+
+yCC_min_t1 = abs(yCC_test1_FPR_list[0]-yCC_test1_FNR_list[0])
+yCC_min_t1_index = 0
+
+yCC_min_t2 = abs(yCC_test2_FPR_list[0]-yCC_test2_FNR_list[0])
+yCC_min_t2_index = 0
+
+for t in range(1,20,1):
+  if abs(test1_FPR_list[t]-test1_FNR_list[t]) < min_t1 :
+   min_t1 = abs(test1_FPR_list[t]-test1_FNR_list[t])
+   min_t1_index = t
+  
+  if abs(test2_FPR_list[t]-test2_FNR_list[t]) < min_t2 :
+   min_t2 = abs(test2_FPR_list[t]-test2_FNR_list[t])
+   min_t2_index = t
+  
+  if abs(yCC_test1_FPR_list[t]-yCC_test1_FNR_list[t]) < yCC_min_t1 :
+   yCC_min_t1 = abs(yCC_test1_FPR_list[t]-yCC_test1_FNR_list[t])
+   yCC_min_t1_index = t
+  
+  if abs(yCC_test2_FPR_list[t]-yCC_test2_FNR_list[t]) < yCC_min_t2 :
+   yCC_min_t2 = abs(yCC_test2_FPR_list[t]-yCC_test2_FNR_list[t])
+   yCC_min_t2_index = t
+
+error_rate_t1_chromatic = test1_FNR_list[min_t1_index]
+error_rate_t2_chromatic = test2_FNR_list[min_t2_index]
+
+error_rate_t1_yCC = yCC_test1_FNR_list[yCC_min_t1_index]
+error_rate_t2_yCC = yCC_test2_FNR_list[yCC_min_t2_index]
+
+print('='*30)
+print(f'error_rate_t1_chromatic {error_rate_t1_chromatic}')
+print(f'error_rate_t2_chromatic {error_rate_t2_chromatic}')
+print(f'error_rate_t1_yCC {error_rate_t1_yCC}')
+print(f'error_rate_t2_yCC {error_rate_t2_yCC}')
+
+print('='*30)
+print(f'Optimal threshold for test1 chromatic: {thresholds[min_t1_index]}')
+print(f'Optimal threshold for test1 yCC: {yCC_thresholds[yCC_min_t1_index]}')
+print(f'Optimal threshold for test2 chromatic: {thresholds[min_t2_index]}')
+print(f'Optimal threshold for test2 yCC: {yCC_thresholds[yCC_min_t2_index]}')
+print('='*30)
+
+
+for i in range(width):
+  for j in range (height):
+    #######test1 image
+        x_t1 = np.array([test1_chromatic[i,j,0],test1_chromatic[i,j,1]])
+        yCC_x_t1 = np.array([test1_yCC[i,j,1],test1_yCC[i,j,2]])
+       
+        #assigning labels for chromatic space
+        if gaussian_pdf(x_t1,mew, lhs, cov_inv)<=thresholds[min_t1_index]:
+          test1_rgb[i,j] = [255,255,255]
+         
+        #classification for yCC space
+        if gaussian_pdf(yCC_x_t1,yCC_mew, yCC_lhs, yCC_cov_inv)<=yCC_thresholds[yCC_min_t1_index]:
+          yCC_test1_rgb[i,j] = [255,255,255]
+    
+    #######test2 image
+        x_t2 = np.array([test2_chromatic[i,j,0],test2_chromatic[i,j,1]])
+        yCC_x_t2 = np.array([test2_yCC[i,j,1],test2_yCC[i,j,2]])
+       
+        #assigning labels for chromatic space
+        if gaussian_pdf(x_t2,mew, lhs, cov_inv)<=thresholds[min_t2_index]:
+          test2_rgb[i,j] = [255,255,255]
+         
+        #classification for yCC space
+        if gaussian_pdf(yCC_x_t2,yCC_mew, yCC_lhs, yCC_cov_inv)<=yCC_thresholds[yCC_min_t2_index]:
+          yCC_test2_rgb[i,j] = [255,255,255]
+          
 Image.fromarray(test1_rgb).save('/home/mraha/PA_2/P2_Data/Data_Prog2/test1_chromatic.ppm')  
 Image.fromarray(test2_rgb).save('/home/mraha/PA_2/P2_Data/Data_Prog2/test2_chromatic.ppm')
 Image.fromarray(yCC_test1_rgb).save('/home/mraha/PA_2/P2_Data/Data_Prog2/test1_yCC.ppm')  
 Image.fromarray(yCC_test2_rgb).save('/home/mraha/PA_2/P2_Data/Data_Prog2/test2_yCC.ppm')
 
-
+# FPR&FNR vs Thresholds
 plt.plot(thresholds,FPR_list, 'r',label = "chromatic_FP")
 plt.plot(thresholds,FNR_list,'b',label = "chromatic_FN" )
-plt.plot(thresholds,yCC_FPR_list, 'g',label = "yCC_FP")
-plt.plot(thresholds,yCC_FNR_list,'y',label = "yCC_FN" )
-
-
-plt.title('Train ROC Curve')
+plt.title('Train ROC Curve FPR & FNR Vs Thresholds')
 plt.xlabel('Threshold')
 plt.ylabel('Error Rate')
 plt.legend(loc="lower right")
-plt.savefig('Train_ROC_curve.png')
+plt.savefig('Train_ROC_chromatic_FPR & FNR Vs T.png')
 plt.show()
+
+plt.plot(yCC_thresholds,yCC_FPR_list, 'g',label = "yCC_FP")
+plt.plot(yCC_thresholds,yCC_FNR_list,'y',label = "yCC_FN" )
+plt.title('Train ROC Curve FPR & FNR Vs Thresholds')
+plt.xlabel('Threshold')
+plt.ylabel('Error Rate')
+plt.legend(loc="lower right")
+plt.savefig('Train_ROC_yCC_FPR & FNR Vs T.png.png')
+plt.show()
+
 
 plt.plot(thresholds,test1_FPR_list, 'r',label = "chromatic_test1_FP")
 plt.plot(thresholds,test1_FNR_list,'b',label = "chromatic_test1_FN" )
-plt.plot(thresholds,yCC_test1_FPR_list, 'g',label = "yCC_test1_FP")
-plt.plot(thresholds,yCC_test1_FNR_list,'y',label = "yCC_test1_FN" )
-
-plt.title('Test1 ROC Curve')
+plt.title('Test1 ROC Curve FPR&FNR Vs Thresholds')
 plt.xlabel('Threshold')
 plt.ylabel('Error Rate')
 plt.legend(loc="lower right")
-plt.savefig('Test1_ROC_curve.png')
+plt.savefig('Test1_ROC_chromatic_FPR & FNR Vs T.png')
+plt.show()
+
+plt.plot(yCC_thresholds,yCC_test1_FPR_list, 'g',label = "yCC_test1_FP")
+plt.plot(yCC_thresholds,yCC_test1_FNR_list,'y',label = "yCC_test1_FN" )
+plt.title('Test1 ROC Curve FPR & FNR Vs T yCC')
+plt.xlabel('Threshold')
+plt.ylabel('Error Rate')
+plt.legend(loc="lower right")
+plt.savefig('Test1_ROC_FPR & FNR Vs T yCC.png')
 plt.show()
 
 plt.plot(thresholds, test2_FPR_list,'r',label = "chromatic_test2_FP")
 plt.plot(thresholds,test2_FNR_list,'b',label = "chromatic_test2_FN")
-plt.plot(thresholds, yCC_test2_FPR_list,'g',label = "yCC_test2_FP")
-plt.plot(thresholds,yCC_test2_FNR_list,'y',label = "yCC_test2_FN")
-
-plt.title('Test2 ROC Curve')
+plt.title('Test2 ROC Curve FPR & FNR Vs Thresholds')
 plt.xlabel('Threshold')
 plt.ylabel('Error Rate')
 plt.legend(loc="lower right")
-plt.savefig('Test2_ROC_curve.png')
+plt.savefig('Test2_ROC_curve_FPR & FNR Vs Thresholds_chromatic.png')
+plt.show()
+
+plt.plot(yCC_thresholds, yCC_test2_FPR_list,'g',label = "yCC_test2_FP")
+plt.plot(yCC_thresholds,yCC_test2_FNR_list,'y',label = "yCC_test2_FN")
+plt.xlabel('Threshold')
+plt.ylabel('Error Rate')
+plt.legend(loc="lower right")
+plt.savefig('Test2_ROC_curve_FPR & FNR Vs Thresholds yCC.png')
+plt.show()
+
+#FNRvsFPR
+plt.plot(FPR_list,FNR_list, 'r',label = "chromatic")
+plt.plot(yCC_FPR_list,yCC_FNR_list, 'b',label = "yCC")
+plt.title('Train ROC Curve FNR Vs FPR')
+plt.xlabel('FPR')
+plt.ylabel('FNR')
+plt.legend(loc="lower right")
+plt.savefig('Train_ROC_curve_FNR vs FPR.png')
+plt.show()
+
+plt.plot(test1_FPR_list,test1_FNR_list, 'r',label = "chromatic")
+plt.plot(yCC_test1_FPR_list,yCC_test1_FNR_list, 'g',label = "yCC")
+plt.title('Test1 ROC Curve FNR vs FPR')
+plt.xlabel('FPR')
+plt.ylabel('FNR')
+plt.legend(loc="lower right")
+plt.savefig('Test1_ROC_curve_FNR vs FPR.png')
+plt.show()
+
+plt.plot(test2_FPR_list,test2_FNR_list,'r',label = "chromatic")
+plt.plot(yCC_test2_FPR_list,yCC_test2_FNR_list,'g',label = "yCC")
+plt.title('Test2 ROC Curve FNR Vs FPR')
+plt.xlabel('FPR')
+plt.ylabel('FNR')
+plt.legend(loc="lower right")
+plt.savefig('Test2_ROC_curve_FNR vs FPR.png')
 plt.show()
 
