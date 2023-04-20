@@ -417,26 +417,26 @@ int main (int argc, char **argv)
 		return -1;
 	}
 
-	eigen_stuff[1] = transform_to_d(data[1], eigen_stuff[1]);
+	// eigen_stuff[1] = transform_to_d(data[1], eigen_stuff[1]);
 
-	if ( ! check_orthogonal(eigen_stuff[1]) )
-	{
-		cout << "Eigen vectors are not orthogonal, returning in error!" << endl;
+	// if ( ! check_orthogonal(eigen_stuff[1]) )
+	// {
+	// 	cout << "Eigen vectors are not orthogonal, returning in error!" << endl;
 
-		return -1;
-	}
+	// 	return -1;
+	// }
 
-	if ( ! check_average_reconstruction_error(reconstruction_test_face, avg_face, eigen_stuff[1]) )
-	{
-		cout << "Average reconstruction error is too high, returning in error!" << endl;
+	// if ( ! check_average_reconstruction_error(reconstruction_test_face, avg_face, eigen_stuff[1]) )
+	// {
+	// 	cout << "Average reconstruction error is too high, returning in error!" << endl;
 
-		return -1;
-	}
+	// 	return -1;
+	// }
 
-	MatrixXd projected_coefficients = project_data_to_eigen_space(data[1], eigen_stuff[1]);
+	// MatrixXd projected_coefficients = project_data_to_eigen_space(data[1], eigen_stuff[1]);
 
-	// now I just save everything to a file and it should be good
-	save_results_to_file("./model/", avg_face, eigen_stuff[1], eigen_stuff[0], data[0], projected_coefficients);
+	// // now I just save everything to a file and it should be good
+	// save_results_to_file("./model/", avg_face, eigen_stuff[1], eigen_stuff[0], data[0], projected_coefficients);
 
 	return 0;
 }
