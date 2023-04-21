@@ -155,11 +155,9 @@ bool check_orthogonal_and_eigen(MatrixXd initial_mat, MatrixXd eigen_vectors, Ve
 		{
 			double dot_prod = eigen_vectors.col(i).dot(eigen_vectors.col(j));
 
-			// cout << "Dot prod " << i << " " << j << ": " << dot_prod << endl;
-
 			if (abs(dot_prod) > EPSILON && k >= 1)
 				return false;
-			else
+			else if (abs(dot_prod) > EPSILON)
 				k++;
 		}
 	}
@@ -187,12 +185,13 @@ bool check_orthogonal(MatrixXd eigen_vectors)
 		{
 			double dot_prod = eigen_vectors.col(i).dot(eigen_vectors.col(j));
 
-			// cout << "Dot prod " << i << " " << j << ": " << dot_prod << endl;
-
-			if (abs(dot_prod) > EPSILON && k >= 1)
+			if (abs(dot_prod) > EPSILON && k >= 3)
 				return false;
-			else
+			else if (abs(dot_prod) > EPSILON)
+			{
+				cout << "Dot prod " << i << " " << j << ": " << dot_prod << endl;
 				k++;
+			}
 		}
 	}
 
@@ -205,11 +204,7 @@ bool check_average_reconstruction_error(VectorXd initial_data, VectorXd avg_face
 	VectorXd transformed = initial_data - avg_face;
 
 	// next project the vector into the eigen space and save the coefficients
-	VectorXd projected_coefficients(eigen_vectors.cols());
-
-	for (int i = 0; i < eigen_vectors.cols(); i++)
-		projected_coefficients(i) = transformed.transpose() * eigen_vectors.col(i);
-
+	VectorXd projected_coefficients = (transformed.transpose() * eigen_vectors).transpose();
 
 	// now reconstruct the vector in the initial space
 	VectorXd reconstruction(transformed.rows());
@@ -262,14 +257,9 @@ vector<MatrixXd> get_sorted_orthonormal_eigenvectors(MatrixXd inp)
 
 		chosen_indices.push_back(min_eigenval_index);
 
-		double vector_norm = vectors.col(min_eigenval_index).norm();
-
 		// copy the smallest to the furthest column to the right
-		for (int j = 0; j < vectors.rows(); j++)
-		{
-			vals_to_ret( ( vals.rows() - 1 ) - i, 0) = vals(min_eigenval_index, 0);
-			vectors_to_ret(j, ( vectors.cols() - 1 ) - i) = vectors(j, min_eigenval_index) / vector_norm;
-		}
+		vals_to_ret.row(val.rows() - 1 - i) = vals.row(min_eigenval_index);
+		vectors_to_ret.col(vector.cols() - 1 - i) = vectors.col(min_eigenval_index);
 	}
 
 	return {vals_to_ret, vectors_to_ret};
@@ -290,7 +280,7 @@ VectorXd get_average(MatrixXd inp_data)
 	{
 		VectorXd xi = inp_data.col(i);
 
-		average = average + (1 / (i)) * (xi - average);
+		average = average + (1 / i) * (xi - average);
 	}
 
 	return average;
@@ -298,52 +288,27 @@ VectorXd get_average(MatrixXd inp_data)
 
 MatrixXd transform_to_d(MatrixXd data, MatrixXd eigen_vectors)
 {
-	MatrixXd transformed(data.rows(), eigen_vectors.cols());
+	MatrixXd transformed = data * eigen_vectors;
 
-	for (int i = 0; i < eigen_vectors.cols(); i++)
-	{
-		transformed.col(i) = data * eigen_vectors.col(i);
-
+	// then just normalize again
+	for (int i = 0; i < transformed.cols(); i++)
 		transformed.col(i) /= transformed.col(i).norm();
-	}
 
 	return transformed;
 }
 
 MatrixXd subtract_average_face(MatrixXd data, VectorXd avg_face)
 {
-	MatrixXd transformed_face(data.rows(), data.cols());
+	MatrixXd avg_face_mat = avg_face.replicate(1, data.cols());
 
-	for (int i = 0; i < data.cols(); i++)
-	{
-		transformed_face.col(i) = data.col(i) - avg_face;
-	}
-
-	return transformed_face;
+	return data - avg_face_mat;
 }
 
 MatrixXd project_data_to_eigen_space(MatrixXd data, MatrixXd eigen_vectors)
 {
-	MatrixXd projected_data(eigen_vectors.cols(), data.cols());
-
-	for (int i = 0; i < data.cols(); i++)
-	{
-		VectorXd coefficients(eigen_vectors.cols());
-
-		for (int j = 0; j < eigen_vectors.cols(); j++)
-		{
-			coefficients(j) = data.col(i).transpose() * eigen_vectors.col(j);
-		}
-
-		projected_data.col(i) = coefficients;
-	}
+	MatrixXd projected_data = (data.transpose() * eigen_vectors).transpose();
 
 	return projected_data;
-}
-
-void visualize_vector_as_image_and_display(VectorXd image_data, int image_width, int image_height)
-{
-
 }
 
 void save_results_to_file(string output_directory_path, VectorXd average_face, MatrixXd eigen_faces, MatrixXd eigen_vals, MatrixXd coefficient_labels, MatrixXd projected_coefficients)
@@ -397,10 +362,6 @@ int main (int argc, char **argv)
 	data[1] = subtract_average_face(data[1], avg_face);
 
 	MatrixXd sigma = get_covariance_matrix(data[1]);
-
-	// cout << data[1] << endl;
-
-	// cout << sigma.rows() << " " << sigma.cols() << endl;
 
 	if ( ! check_symmetric(sigma) ) 
 	{

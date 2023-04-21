@@ -277,7 +277,7 @@ vector<MatrixXd> get_sorted_orthonormal_eigenvectors(MatrixXd inp)
 
 MatrixXd get_covariance_matrix(MatrixXd inp_data)
 {
-	MatrixXd to_ret = inp_data.transpose() *  inp_data;
+	MatrixXd to_ret = inp_data *  inp_data.transpose();
 
 	return to_ret / to_ret.cols();
 }
@@ -339,11 +339,6 @@ MatrixXd project_data_to_eigen_space(MatrixXd data, MatrixXd eigen_vectors)
 	}
 
 	return projected_data;
-}
-
-void visualize_vector_as_image_and_display(VectorXd image_data, int image_width, int image_height)
-{
-
 }
 
 void save_results_to_file(string output_directory_path, VectorXd average_face, MatrixXd eigen_faces, MatrixXd eigen_vals, MatrixXd coefficient_labels, MatrixXd projected_coefficients)
@@ -426,17 +421,17 @@ int main (int argc, char **argv)
 	// 	return -1;
 	// }
 
-	// if ( ! check_average_reconstruction_error(reconstruction_test_face, avg_face, eigen_stuff[1]) )
-	// {
-	// 	cout << "Average reconstruction error is too high, returning in error!" << endl;
+	if ( ! check_average_reconstruction_error(reconstruction_test_face, avg_face, eigen_stuff[1]) )
+	{
+		cout << "Average reconstruction error is too high, returning in error!" << endl;
 
-	// 	return -1;
-	// }
+		return -1;
+	}
 
-	// MatrixXd projected_coefficients = project_data_to_eigen_space(data[1], eigen_stuff[1]);
+	MatrixXd projected_coefficients = project_data_to_eigen_space(data[1], eigen_stuff[1]);
 
-	// // now I just save everything to a file and it should be good
-	// save_results_to_file("./model/", avg_face, eigen_stuff[1], eigen_stuff[0], data[0], projected_coefficients);
+	// now I just save everything to a file and it should be good
+	save_results_to_file("./model/", avg_face, eigen_stuff[1], eigen_stuff[0], data[0], projected_coefficients);
 
 	return 0;
 }
