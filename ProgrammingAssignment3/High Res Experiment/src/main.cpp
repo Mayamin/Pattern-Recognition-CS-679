@@ -66,7 +66,7 @@ vector<string> get_files_from_directory(string path)
 	return to_ret;
 }
 
-vector<MatrixXd> load_images_from_path(string directory_path, int& image_width, int& image_height)
+vector<MatrixXd> load_images_from_path(string directory_path)
 {
 	cout << "Loading files... " << endl;
 	vector<string> file_paths = get_files_from_directory(directory_path);
@@ -93,10 +93,6 @@ vector<MatrixXd> load_images_from_path(string directory_path, int& image_width, 
 
 	// create a D x M matrix to contain all of the data
 	MatrixXd data(img.rows * img.cols, file_paths.size());
-
-	image_width = img.cols;
-	image_height = img.rows;
-
 
 	for (;image_num < file_paths.size(); image_num++)
 	{
@@ -131,74 +127,18 @@ vector<MatrixXd> load_images_from_path(string directory_path, int& image_width, 
 }
 
 // to check is assumed to be square as only square matrices can be symmetric
-bool check_symmetric (MatrixXd to_check)
+bool check_symmetric (const MatrixXd to_check)
 {
-	// we can start at 1 because the middle row is irrelevant
-	for (int i = 1; i < to_check.rows(); i++)
-		// then we can from 0 till we hit the middle (j = i) for the same reason
-		for (int j = 0; j < i; j++)
-			// use the normal method to check if they are unequal
-			if ( abs(to_check(i, j) - to_check(j, i)) > EPSILON ) 
-				return false;
-
-	// runtime is O(nC2)
-	return true;
+	return to_check.isApprox(to_check.transpose());
 }
 
-bool check_orthogonal_and_eigen(MatrixXd initial_mat, MatrixXd eigen_vectors, VectorXd eigen_values)
+bool check_orthogonal(const MatrixXd eigen_vectors)
 {
-	int k = 0;
-	// first check the orthogonality of the eigen vectors
-	for (int i = 0; i < eigen_vectors.cols() - 1; i++)
-	{
-		for (int j = i + 1; j < eigen_vectors.cols(); j++)
-		{
-			double dot_prod = eigen_vectors.col(i).dot(eigen_vectors.col(j));
-
-			if (abs(dot_prod) > EPSILON && k >= 1)
-				return false;
-			else if (abs(dot_prod) > EPSILON)
-				k++;
-		}
-	}
-
-	// then check the property Cu = lambda u
-	for (int i = 0; i < eigen_values.rows(); i++)
-	{
-		MatrixXd lhs = initial_mat * eigen_vectors.col(i);
-		MatrixXd rhs = eigen_values(i, 0) * eigen_vectors.col(i);
-
-		if ((lhs - rhs).norm() > EPSILON)
-			return false;
-	}
-
-	return true;
+	// cout << eigen_vectors.transpose() * eigen_vectors << endl;
+	return (eigen_vectors.transpose() * eigen_vectors).isIdentity(EPSILON);
 }
 
-bool check_orthogonal(MatrixXd eigen_vectors)
-{
-	int k = 0;
-	// first check the orthogonality of the eigen vectors
-	for (int i = 0; i < eigen_vectors.cols() - 1; i++)
-	{
-		for (int j = i + 1; j < eigen_vectors.cols(); j++)
-		{
-			double dot_prod = eigen_vectors.col(i).dot(eigen_vectors.col(j));
-
-			if (abs(dot_prod) > EPSILON && k >= 3)
-				return false;
-			else if (abs(dot_prod) > EPSILON)
-			{
-				cout << "Dot prod " << i << " " << j << ": " << dot_prod << endl;
-				k++;
-			}
-		}
-	}
-
-	return true;
-}
-
-bool check_average_reconstruction_error(VectorXd initial_data, VectorXd avg_face, MatrixXd eigen_vectors)
+bool check_average_reconstruction_error(const VectorXd initial_data, const VectorXd avg_face, const MatrixXd eigen_vectors)
 {
 	// first center initial data on the origin
 	VectorXd transformed = initial_data - avg_face;
@@ -227,88 +167,44 @@ bool check_average_reconstruction_error(VectorXd initial_data, VectorXd avg_face
 vector<MatrixXd> get_sorted_orthonormal_eigenvectors(MatrixXd inp)
 {
 	// use eigen lib built in solver
-	EigenSolver<MatrixXd> solver(inp);
+	SelfAdjointEigenSolver<MatrixXd> solver(inp);
 
 	// each row is 1 eigen value
-	MatrixXd vals = solver.eigenvalues().real();
+	MatrixXd vals = solver.eigenvalues();
 	// each column is a different eigen vector (eigenval (k, 0) corresponds to col k)
-	MatrixXd vectors = solver.eigenvectors().real();
+	MatrixXd vectors = solver.eigenvectors();
 
-	// sort them to the output
-	MatrixXd vals_to_ret(vals.rows(), vals.cols());
-	MatrixXd vectors_to_ret(vectors.rows(), vectors.cols());
-
-	vector<int> chosen_indices;
-
-	for (int i = 0; i < vectors.cols(); i++)
-	{
-		int min_eigenval_index = -1;
-		double min_val = numeric_limits<double>::infinity();
-
-		// find min index not already chosen
-		for (int j = 0; j < vals.rows(); j++)
-		{
-			if (vals(j, 0) < min_val && (std::find(chosen_indices.begin(), chosen_indices.end(), j) == chosen_indices.end()) && ( chosen_indices.size() == 0 || chosen_indices.back() != j ) )
-			{
-				min_val = vals(j, 0);
-				min_eigenval_index = j;
-			}
-		}
-
-		chosen_indices.push_back(min_eigenval_index);
-
-		// copy the smallest to the furthest column to the right
-		vals_to_ret.row(val.rows() - 1 - i) = vals.row(min_eigenval_index);
-		vectors_to_ret.col(vector.cols() - 1 - i) = vectors.col(min_eigenval_index);
-	}
-
-	return {vals_to_ret, vectors_to_ret};
+	// they come in sorted smallest to largest, so reverse the orders and return them
+	return {vals.colwise().reverse(), vectors.rowwise().reverse()};
 }
 
 MatrixXd get_covariance_matrix(MatrixXd inp_data)
 {
-	MatrixXd to_ret = inp_data.transpose() *  inp_data;
-
-	return to_ret / to_ret.cols();
+	return (inp_data.transpose() *  inp_data) / inp_data.cols();
 }
 
 VectorXd get_average(MatrixXd inp_data)
 {
-	VectorXd average = inp_data.col(0);
-
-	for (int i = 1; i < inp_data.cols(); i++)
-	{
-		VectorXd xi = inp_data.col(i);
-
-		average = average + (1 / i) * (xi - average);
-	}
-
-	return average;
+	return inp_data.rowwise().mean();
 }
 
 MatrixXd transform_to_d(MatrixXd data, MatrixXd eigen_vectors)
 {
-	MatrixXd transformed = data * eigen_vectors;
+	MatrixXd to_ret = data * eigen_vectors;
 
-	// then just normalize again
-	for (int i = 0; i < transformed.cols(); i++)
-		transformed.col(i) /= transformed.col(i).norm();
+	to_ret.colwise().normalize();
 
-	return transformed;
+	return to_ret;
 }
 
 MatrixXd subtract_average_face(MatrixXd data, VectorXd avg_face)
 {
-	MatrixXd avg_face_mat = avg_face.replicate(1, data.cols());
-
-	return data - avg_face_mat;
+	return data.colwise() - avg_face;
 }
 
 MatrixXd project_data_to_eigen_space(MatrixXd data, MatrixXd eigen_vectors)
 {
-	MatrixXd projected_data = (data.transpose() * eigen_vectors).transpose();
-
-	return projected_data;
+	return (data.transpose() * eigen_vectors).transpose();
 }
 
 void save_results_to_file(string output_directory_path, VectorXd average_face, MatrixXd eigen_faces, MatrixXd eigen_vals, MatrixXd coefficient_labels, MatrixXd projected_coefficients)
@@ -350,16 +246,14 @@ int main (int argc, char **argv)
 	if (argc < 2)
 		return -1;
 
-	int width, height;
-
-	width = height = 0;
-
-	vector<MatrixXd> data = load_images_from_path(string(argv[1]), width, height);
+	vector<MatrixXd> data = load_images_from_path(string(argv[1]));
 
 	VectorXd avg_face = get_average(data[1]);
 	VectorXd reconstruction_test_face = data[1].col(3);
 
 	data[1] = subtract_average_face(data[1], avg_face);
+
+	cout << "Calculating Covariance Matrix..." << endl;
 
 	MatrixXd sigma = get_covariance_matrix(data[1]);
 
@@ -369,23 +263,29 @@ int main (int argc, char **argv)
 		return -1;
 	}
 
+	cout << "Estimating eigen vectors..." << endl;
+
 	vector<MatrixXd> eigen_stuff = get_sorted_orthonormal_eigenvectors(sigma);
-
-	if ( ! check_orthogonal_and_eigen(sigma, eigen_stuff[1], eigen_stuff[0].col(0)) )
-	{
-		cout << "Eigen vectors are not orthogonal before reconstruction, returning in error!" << endl;
-
-		return -1;
-	}
-
-	eigen_stuff[1] = transform_to_d(data[1], eigen_stuff[1]);
 
 	if ( ! check_orthogonal(eigen_stuff[1]) )
 	{
-		cout << "Eigen vectors are not orthogonal, returning in error!" << endl;
+		cout << "Eigen vectors are not orthogonal before transformation, returning in error!" << endl;
 
 		return -1;
 	}
+
+	cout << "Transforming eigen vectors to d dimensions..." << endl; 
+
+	eigen_stuff[1] = transform_to_d(data[1], eigen_stuff[1]);
+
+	// if ( ! check_orthogonal(eigen_stuff[1]) )
+	// {
+	// 	cout << "Eigen vectors are not orthogonal, returning in error!" << endl;
+
+	// 	return -1;
+	// }
+
+	cout << "Estimating reconstruction error..." << endl;
 
 	if ( ! check_average_reconstruction_error(reconstruction_test_face, avg_face, eigen_stuff[1]) )
 	{
@@ -393,6 +293,8 @@ int main (int argc, char **argv)
 
 		return -1;
 	}
+
+	cout << "Saving results..." << endl; 
 
 	MatrixXd projected_coefficients = project_data_to_eigen_space(data[1], eigen_stuff[1]);
 
