@@ -10,8 +10,8 @@ run: cmp_train train plot
 train: cmp_train
 	./bin/train "./data/fa_L/"
 
-test: scripts/main.py
-	echo "Hello world!"
+test: scripts/test.py
+	python3 scripts/test.py
 
 cmp_train: src/main.cpp
 	$(PP) $(CFLAGS) -o bin/train src/main.cpp $(openCVCflags) $(openCVLflags)
