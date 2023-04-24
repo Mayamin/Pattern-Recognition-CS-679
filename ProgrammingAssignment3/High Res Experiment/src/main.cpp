@@ -22,6 +22,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/core/eigen.hpp>
 
 // overall constants
 #define EPSILON .001
@@ -66,7 +67,43 @@ vector<string> get_files_from_directory(string path)
 	return to_ret;
 }
 
-vector<MatrixXd> load_images_from_path(string directory_path)
+VectorXd vectorize_matrix(MatrixXd inp)
+{
+	VectorXd to_ret(inp.rows() * inp.cols());
+
+	for (int i = 0; i < inp.rows(); i++)
+	{
+		for (int j = 0; j < inp.cols(); j++)
+		{
+			to_ret(i * inp.cols() + j) = inp(i, j);
+		}
+	}
+
+	return to_ret;
+}
+
+MatrixXd matricize_vector(VectorXd inp, int width, int height)
+{
+	MatrixXd to_ret(height, width);
+
+	int row = 0;
+	int col = 0;
+
+	for (int i = 0; i < inp.rows(); i++, col++)
+	{
+		if (col > width - 1)
+		{
+			col = 0;
+			row++;
+		}
+
+		to_ret(row, col) = inp(i);
+	}
+
+	return to_ret;
+}
+
+vector<MatrixXd> load_images_from_path(string directory_path, int& width, int& height)
 {
 	cout << "Loading files... " << endl;
 	vector<string> file_paths = get_files_from_directory(directory_path);
@@ -83,6 +120,9 @@ vector<MatrixXd> load_images_from_path(string directory_path)
 	int image_num = 0;
 
 	Mat img = imread(directory_path + file_paths[image_num], IMREAD_COLOR);
+
+	width = img.cols;
+	height = img.rows;
 
 	if (img.empty())
 	{
@@ -109,13 +149,18 @@ vector<MatrixXd> load_images_from_path(string directory_path)
 			}
 		}
 
-		for (int i = 0; i < img.rows; i++)
-		{
-			for (int j = 0; j < img.cols; j++)
-			{
-				data(i * img.cols + j, image_num) = img.at<Vec3b>(i, j)[0];
-			}
-		}
+		MatrixXd tmp(height, width);
+		
+		vector<Mat> channels(3);
+
+		split(img, channels);
+
+		cv2eigen(channels[0], tmp);
+
+		VectorXd vec = vectorize_matrix(tmp);
+
+		data.col(image_num) = vec;
+	
 	}
 
 	// cout << data << endl;
@@ -237,8 +282,18 @@ void save_results_to_file(string output_directory_path, VectorXd average_face, M
 	o_file << average_face << endl;
 
 	o_file.close();
+}
 
+void save_vector_image_to_file(VectorXd image, int width, int height, string file_name)
+{
+	cout << "Saving to file: " << file_name << endl;
+	Mat cv_image(height, width, CV_8U);
 
+	Matrix<uint8_t, -1, -1> tmp = matricize_vector(image, width, height).cast<uint8_t>();
+
+	eigen2cv(tmp, cv_image);
+
+	imwrite(file_name, cv_image);
 }
 
 int main (int argc, char **argv)
@@ -246,9 +301,12 @@ int main (int argc, char **argv)
 	if (argc < 2)
 		return -1;
 
-	vector<MatrixXd> data = load_images_from_path(string(argv[1]));
+	int width, height;
+
+	vector<MatrixXd> data = load_images_from_path(string(argv[1]), width, height);
 
 	VectorXd avg_face = get_average(data[1]);
+
 	VectorXd reconstruction_test_face = data[1].col(3);
 
 	data[1] = subtract_average_face(data[1], avg_face);
@@ -278,13 +336,6 @@ int main (int argc, char **argv)
 
 	eigen_stuff[1] = transform_to_d(data[1], eigen_stuff[1]);
 
-	// if ( ! check_orthogonal(eigen_stuff[1]) )
-	// {
-	// 	cout << "Eigen vectors are not orthogonal, returning in error!" << endl;
-
-	// 	return -1;
-	// }
-
 	cout << "Estimating reconstruction error..." << endl;
 
 	if ( ! check_average_reconstruction_error(reconstruction_test_face, avg_face, eigen_stuff[1]) )
@@ -300,6 +351,35 @@ int main (int argc, char **argv)
 
 	// now I just save everything to a file and it should be good
 	save_results_to_file("./model/", avg_face, eigen_stuff[1], eigen_stuff[0], data[0], projected_coefficients);
+
+	save_vector_image_to_file(avg_face, width, height, "./images/avg_face.pgm");
+
+	ostringstream eigen_faces_file_path;
+
+	for (int i = 0; i < 10; i++)
+	{
+		eigen_faces_file_path.str("");
+		
+		eigen_faces_file_path << "./images/eigen_face_highest_" << i << ".pgm";
+
+		VectorXd to_save = eigen_stuff[1].col(i).array() - eigen_stuff[1].col(i).minCoeff();
+
+		to_save = 255 * ( to_save ) / (eigen_stuff[1].col(i).maxCoeff() - eigen_stuff[1].col(i).minCoeff());
+
+		save_vector_image_to_file(to_save, width, height, eigen_faces_file_path.str());
+
+		eigen_faces_file_path.str("");
+		
+		eigen_faces_file_path << "./images/eigen_face_lowest_" << i << ".pgm";	
+
+		to_save = eigen_stuff[1].col(eigen_stuff[1].cols() - 1 - i).array() - eigen_stuff[1].col(eigen_stuff[1].cols() - 1 - i).minCoeff();
+
+		to_save = 255 * ( to_save ) / (eigen_stuff[1].col(eigen_stuff[1].cols() - 1 - i).maxCoeff() - eigen_stuff[1].col(eigen_stuff[1].cols() - 1 - i).minCoeff());
+
+		save_vector_image_to_file(to_save, width, height, eigen_faces_file_path.str());
+	}
+
+	cout << "All done" << endl;
 
 	return 0;
 }
