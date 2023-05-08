@@ -1,87 +1,67 @@
-import numpy as NP
-from libsvm.svmutil import *
+
 from pathlib import Path
 import pandas as pd
 import numpy as np
 from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
-from sklearn.metrics import f1_score
 import csv
+from svm_fold import *
+from itertools import permutations
 
-#read train img_coeff
-path_tr01 = Path("GenderDataRowOrder/16_20/trPCA_01.txt")
-dataframe1 = pd.read_csv(path_tr01 )
-dataframe1.to_csv('trPCA_01.csv', index = None)
-tr_01 = [[] for i in range(134)]
-X_train = []
-with open('trPCA_01.csv','r') as csv_file:
-    csv_reader = csv.reader(csv_file)
-    for row in csv_reader:
-        # print(row)
-        #splitting the elements of first column of each row
-        row_arr = row[0].split()
-        #converting values in each row to float
-        row_arr = np.array([ float(i) for i in row_arr ])
-        for i in range( len(row_arr)):
-            tr_01[i].append(row_arr[i])
+total_fold_number = 3
+poly_degrees = 3
+
+error_poly_rbf_f123 = [
+    [0] * 19,
+    [0] * 19,
+    [0] * 19
+]
+with open('error_data.csv', 'w', newline='') as file:
+    writer = csv.writer(file)
+    for row in error_poly_rbf_f123:
+        writer.writerow(row)
+df = pd.read_csv('error_data.csv', header=None)
+
+for i in range(total_fold_number):
+    img_no = 134
+    fold_no = i+1
+    data= svm_fold_x(img_no,fold_no)
+
+    #polynomial kernel parameter value d = 1,2,3
+    for d in range (poly_degrees):  
+        #SVM train_test on poly kernel d= 1  
+        poly = SVC(kernel='poly', degree = d+1, C = 1).fit(data[0], data[1])
+        poly_pred = poly.predict(data[2])
+        poly_accuracy = accuracy_score(data[3], poly_pred)
+        error = error_rate(poly_accuracy)
+        df.loc[i,d] = error 
+        df.to_csv('error_data.csv', index=False, header=False, mode='w')
+        print("poly_error ",error , "degree ", i+1)
+
+    #rbf kernel 
+    c_gamma = [0.1, 1, 10, 100]
+    pairs = permutations(c_gamma,2)
+    counter = 3
+    for c_g in pairs:
+        rbf = SVC(kernel='rbf', gamma=c_g[0], C=c_g[1]).fit(data[0], data[1])
+        rbf_pred = rbf.predict(data[2])
+        rbf_accuracy = accuracy_score(data[3], rbf_pred)
+        error = error_rate(rbf_accuracy)
+        df.loc[i,counter ] = error 
+        df.to_csv('error_data.csv', index=False, header=False, mode='w')
+        counter += 1
+        print("rbf_error ",error , "c and gamma value of  ", c_g[1], c_g[0])
     
-    X_train = np.transpose(np.array(tr_01))[:, :30]
-    # print("X_train", X_train)
-print("X_train.shape ",X_train.shape )
+    counter_2 = 15
+    # for c = gamma vlaues -> (1 1) (.1 .1) (10 10) (100 100)
+    for j in range (4):
+        rbf = SVC(kernel='rbf', gamma=c_gamma[j], C=c_gamma[j]).fit(data[0], data[1])
+        rbf_pred = rbf.predict(data[2])
+        rbf_accuracy = accuracy_score(data[3], rbf_pred)
+        error = error_rate(rbf_accuracy)
+        df.loc[i,counter_2] = error 
+        df.to_csv('error_data.csv', index=False, header=False, mode='w')
+        counter_2 += 1
+        print("rbf_error ",error , "c and gamma value of  ", c_gamma[j], c_gamma[j])
 
-#read train img_label
-path_Ttr01 = Path("GenderDataRowOrder/16_20/TtrPCA_01.txt")
-dataframe2 = pd.read_csv(path_Ttr01 )
-dataframe2.to_csv('TtrPCA_01.csv', index = None)
-
-with open('TtrPCA_01.csv','r') as csv_file:
-    csv_reader = csv.reader(csv_file)
-    first_row = next(csv_reader)
-    y_train = np.array(first_row[0].split())
-# print("train_labels",y_train) # print("train_labels[0].type",type(y_train[0])) ////str
-print("train_labels.shape",y_train.shape)
-
-
-#read test img coeff
-path_ts01 = Path("GenderDataRowOrder/16_20/tsPCA_01.txt")
-dataframe3 = pd.read_csv(path_ts01 )
-dataframe3.to_csv('tsPCA_01.csv', index = None)
-ts_01 = [[] for i in range(134)]
-X_test = []
-with open('tsPCA_01.csv','r') as csv_file:
-    csv_reader = csv.reader(csv_file)
-    for row in csv_reader:
-        # print(row)
-        #splitting the elements of first column of each row
-        row_arr = row[0].split()
-        #converting values in each row to float
-        row_arr = np.array([ float(i) for i in row_arr ])
-        for i in range( len(row_arr)):
-            ts_01[i].append(row_arr[i])
-    X_test = np.transpose(np.array(ts_01))[:, :30]
-    # print("X_test", X_test)
-print("X_test.shape ",X_test.shape )
-
-#read test img_label
-path_Tts01 = Path("GenderDataRowOrder/16_20/TtsPCA_01.txt")
-dataframe4 = pd.read_csv(path_Tts01 )
-dataframe4.to_csv('TtsPCA_01.csv', index = None)
-with open('TtsPCA_01.csv','r') as csv_file:
-    csv_reader = csv.reader(csv_file)
-    first_row = next(csv_reader)
-    y_test = np.array(first_row[0].split())
-print(" y_test.shape, type(y_test[0]), y_test ", y_test.shape,type(y_test[0]), y_test)
-
-
-#trg d = degree of polynomial = 1,2,3, C = regularization parameter
-poly = SVC(kernel='poly', degree=3, C=1).fit(X_train, y_train)
-poly_pred = poly.predict(X_test)
-poly_accuracy = accuracy_score(y_test, poly_pred)
-poly_f1 = f1_score(y_test, poly_pred, average='weighted')
-print('Accuracy (Polynomial Kernel): ', "%.2f" % (poly_accuracy*100))
-print('F1 (Polynomial Kernel): ', "%.2f" % (poly_f1*100))
-
-
-
-
+ 
