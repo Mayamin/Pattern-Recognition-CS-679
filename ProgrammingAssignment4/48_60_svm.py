@@ -22,7 +22,7 @@ svm_R1_opti = []
 svm_R2_opti = []
 svm_R3_opti = []
 
-resolution_1 = "16_20"
+resolution_1 = "48_60"
 
 
 error_poly_rbf_f123 = [
@@ -32,11 +32,11 @@ error_poly_rbf_f123 = [
 ]
 
 #for validation
-with open('error_val_data.csv', 'w', newline='') as file:
+with open('error_val_data_48_60.csv', 'w', newline='') as file:
     writer = csv.writer(file)
     for row in error_poly_rbf_f123:
         writer.writerow(row)
-df = pd.read_csv('error_val_data.csv', header=None)
+df = pd.read_csv('error_val_data_48_60.csv', header=None)
 flag_poly = 0
 
 
@@ -63,7 +63,7 @@ for i in range(total_fold_number):
 
             error = error_rate(poly_accuracy)
             df.loc[i,flag_poly] = error 
-            df.to_csv('error_val_data.csv', index=False, header=False, mode='w')
+            df.to_csv('error_val_data_48_60.csv', index=False, header=False, mode='w')
             flag_poly += 1
     flag_poly = 0
         
@@ -98,7 +98,7 @@ for i in range(total_fold_number):
 
         # print(f':) {rbf_accuracy} + {error / 100} = {rbf_accuracy + (error / 100) }')
         df.loc[i,counter] = error 
-        df.to_csv('error_val_data.csv', index=False, header=False, mode='w')
+        df.to_csv('error_val_data_48_60.csv', index=False, header=False, mode='w')
         counter += 1
         
     
@@ -119,7 +119,7 @@ for i in range(total_fold_number):
         rbf_accuracy = accuracy_score(data[5], rbf_pred)
         error = error_rate(rbf_accuracy)
         df.loc[i,counter_2] = error 
-        df.to_csv('error_val_data.csv', index=False, header=False, mode='w')
+        df.to_csv('error_val_data_48_60.csv', index=False, header=False, mode='w')
         counter_2 += 1
         
     # counter_2 = 0
@@ -132,7 +132,7 @@ row = 0
 col = 0
 
 #reading min data from val_error file
-with open('error_val_data.csv', 'r') as file:
+with open('error_val_data_48_60.csv', 'r') as file:
     reader = csv.reader(file)
     for i,row in enumerate(reader):
         float_row = [ float(j) for j in row ]
@@ -148,11 +148,11 @@ with open('error_val_data.csv', 'r') as file:
         # print(f"Fold no {i+1}: Minimum value is {min_val_rbf}, found in column {mindex_rbf}")
 
 #for test data
-with open('error_data.csv', 'w', newline='') as file:
+with open('error_data_48_60.csv', 'w', newline='') as file:
     writer = csv.writer(file)
     for row in error_poly_rbf_f123:
         writer.writerow(row)
-df = pd.read_csv('error_data.csv', header=None)
+df = pd.read_csv('error_data_48_60.csv', header=None)
 
 for i in range(total_fold_number):
     img_no = 134
@@ -167,7 +167,7 @@ for i in range(total_fold_number):
         poly_accuracy = accuracy_score(data[3], poly_pred)
         error = error_rate(poly_accuracy)
         df.loc[i,0] = error 
-        df.to_csv('error_data.csv', index=False, header=False, mode='w')
+        df.to_csv('error_data_48_60.csv', index=False, header=False, mode='w')
         
         #rbf kernel 
         c_gamma = [0.1, 1, 10, 100]
@@ -176,7 +176,7 @@ for i in range(total_fold_number):
         rbf_accuracy = accuracy_score(data[3], rbf_pred)
         error = error_rate(rbf_accuracy)
         df.loc[i,1] = error 
-        df.to_csv('error_data.csv', index=False, header=False, mode='w')
+        df.to_csv('error_data_48_60.csv', index=False, header=False, mode='w')
     
     if i == 1 : #for fold 2
         #polynomial kernel 
@@ -184,7 +184,7 @@ for i in range(total_fold_number):
         poly_accuracy = accuracy_score(data[3], poly_pred)
         error = error_rate(poly_accuracy)
         df.loc[i,0] = error 
-        df.to_csv('error_data.csv', index=False, header=False, mode='w')
+        df.to_csv('error_data_48_60.csv', index=False, header=False, mode='w')
         
         #rbf kernel 
         c_gamma = [0.1, 1, 10, 100]
@@ -193,7 +193,7 @@ for i in range(total_fold_number):
         rbf_accuracy = accuracy_score(data[3], rbf_pred)
         error = error_rate(rbf_accuracy)
         df.loc[i,1] = error 
-        df.to_csv('error_data.csv', index=False, header=False, mode='w')
+        df.to_csv('error_data_48_60.csv', index=False, header=False, mode='w')
 
     if i == 2 : #for fold 3
         #polynomial kernel 
@@ -201,7 +201,7 @@ for i in range(total_fold_number):
         poly_accuracy = accuracy_score(data[3], poly_pred)
         error = error_rate(poly_accuracy)
         df.loc[i,0] = error 
-        df.to_csv('error_data.csv', index=False, header=False, mode='w')
+        df.to_csv('error_data_48_60.csv', index=False, header=False, mode='w')
         
         #rbf kernel 
         c_gamma = [0.1, 1, 10, 100]
@@ -210,7 +210,7 @@ for i in range(total_fold_number):
         rbf_accuracy = accuracy_score(data[3], rbf_pred)
         error = error_rate(rbf_accuracy)
         df.loc[i,1] = error 
-        df.to_csv('error_data.csv', index=False, header=False, mode='w')
+        df.to_csv('error_data_48_60.csv', index=False, header=False, mode='w')
     
 
 
